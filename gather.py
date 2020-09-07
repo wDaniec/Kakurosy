@@ -7,14 +7,18 @@ import sys
 import re
 import time
 from bs4 import BeautifulSoup
+import random
 
+hardness = sys.argv[3]
+FILENAME = "puzzles{}_{}.txt".format(sys.argv[2], hardness)
+print FILENAME  
 class GatherError(Exception):
     """
     An application specific error.
     """
     pass
 
-if len(sys.argv)!=2:
+if len(sys.argv)!=4:
     raise GatherError("Wrong number of arguments! Enter number of puzzles to gather as argument.\n" \
           "Example Usage: python gather.py 10 to gather 10 puzzles")
 try:
@@ -25,9 +29,9 @@ except (ValueError, AssertionError):
 
 puzzlebank = []
 try:
-    file = open("savedpuzzles.txt", "r")
+    file = open(FILENAME, "r")
 except IOError:
-    print "Could not acquire read access to file: savedpuzzles.txt"
+    print "Could not acquire read access to file: {}".format(FILENAME)
     sys.exit()
 with file:
     for line in file:
@@ -38,17 +42,19 @@ print 'Currently there are %d unique puzzles in the local puzzle bank!'%(len(set
 print 'Note: A second\'s pause is good practice while scraping online. Be grateful! Internet King Lear:' \
       '\n\"How sharper than a serpent\'s tooth it is to have a thankless scraper!\"'
 try:
-    file = open("savedpuzzles.txt", "a")
+    file = open(FILENAME, "a")
 except IOError:
-    print "Could not acquire write access to file: savedpuzzles.txt"
+    print "Could not acquire write access to file: {}".format(FILENAME)
     sys.exit()
 with file:
     cntup = 0
     timeout = numpuzzles
     print 'Progress:'
+    print("downloading random problems")
     while cntup < timeout:
-        kakuropage = urllib2.urlopen('http://www.kakuroconquest.com/')
-        time.sleep(1)
+        # hardness = random.choice(['easy', 'hard', 'intermediate', 'challenging', 'expert'])
+        kakuropage = urllib2.urlopen('https://www.kakuroconquest.com/{}/{}'.format(sys.argv[2], hardness))
+        time.sleep(0.5)
         kakurosoup = BeautifulSoup(kakuropage,'html.parser')
         puzzleid = 0
         for souptitle in kakurosoup.find_all(class_="text1"):
@@ -68,11 +74,15 @@ with file:
         for elem in kakurosoup.find_all(class_="cellTotal"):
             for elemitem in elem.find_all('input'):
                 addr = elemitem['name']
-                total = int(elemitem['value'])
-                file.write(str(total)+addr[5].encode('ascii')+str(int(addr[7]))+str(int(addr[9]))+'\n')
+                total = elemitem['value']
+                addr = str(addr).split('_')
+                ready_str = total + '_' + addr[1] + '_' + addr[2] + '_' + addr[3]
+                file.write(ready_str+'\n')
         for elem in kakurosoup.find_all(class_="cellNumber"):
             for elemitem in elem.find_all('input'):
                 addr = elemitem['name']
-                file.write('e'+str(int(addr[5])) + str(int(addr[7])) + '\n')
+                addr = str(addr).split('_')
+                ready_str = 'e_' + addr[1] + '_' + addr[2]
+                file.write(ready_str + '\n')
     print ('\nPuzzle bank updated with %d new Kakuro puzzles!'%(numpuzzles))
     file.close()
